@@ -5,6 +5,7 @@ use crate::utils::{get_pef_tod_matrix, julian_to_gmst, old_maybe_broken_jday};
 
 use super::pef::{PEFVel, PEF};
 
+#[derive(Debug, Clone)]
 pub struct TEME {
     // Wrapper for TEME coordinates
     // This is the coordinate system used by TLEs
@@ -32,6 +33,7 @@ impl TEME {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TEMEVel {
     // Wrapper for TEME velocities
     pub x_vel: f64,

@@ -7,6 +7,7 @@ use crate::{
 
 use super::{ecef::ECEF, ned::NED};
 
+#[derive(Debug, Clone)]
 pub struct WGS84Coord {
     lat: Radians,
     lon: Radians,

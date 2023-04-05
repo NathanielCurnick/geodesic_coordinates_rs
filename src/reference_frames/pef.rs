@@ -10,6 +10,7 @@ use super::{
     teme::{TEMEVel, TEME},
 };
 
+#[derive(Debug, Clone)]
 pub struct PEF {
     pub x: f64,
     pub y: f64,
@@ -55,6 +56,7 @@ impl PEF {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct PEFVel {
     // Wrapper for the PEF coordinate system
     pub x_vel: f64,

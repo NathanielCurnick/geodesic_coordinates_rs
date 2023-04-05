@@ -5,6 +5,7 @@ use super::{
     enu::ENU,
 };
 
+#[derive(Debug, Clone)]
 pub struct NED {
     // Wrapper for NED coordinates
     pub n: f64,
@@ -76,6 +77,7 @@ impl NED {
     // pub fn new_from_ecef_ref(ecef: &ECEF, ref_point: &WGS84Coord) -> NED {} // TODO
 }
 
+#[derive(Debug, Clone)]
 pub struct NEDVel {
     pub n_vel: f64,
     pub e_vel: f64,
@@ -109,6 +111,7 @@ impl NEDVel {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct NEDAccel {
     pub n_accel: f64,
     pub e_accel: f64,

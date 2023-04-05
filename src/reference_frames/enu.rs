@@ -1,5 +1,6 @@
 use super::{ecef::ECEF, ned::NED, wgs84::WGS84Coord};
 
+#[derive(Debug, Clone)]
 pub struct ENU {
     pub e: f64,
     pub n: f64,

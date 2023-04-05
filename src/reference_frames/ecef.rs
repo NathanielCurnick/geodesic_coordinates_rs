@@ -13,6 +13,7 @@ use super::{
     wgs84::WGS84Coord,
 };
 
+#[derive(Debug, Clone)]
 pub struct ECEF {
     // Wrapper for ECEF coordinates
     pub x: f64,
@@ -109,6 +110,7 @@ impl ECEF {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ECEFVel {
     // Wrapper for ECEF velocities
     pub x_vel: f64,
