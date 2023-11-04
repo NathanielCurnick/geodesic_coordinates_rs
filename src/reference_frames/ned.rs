@@ -1,4 +1,4 @@
-use peroxide::prelude::{matrix, Matrix, Shape::Row};
+use crate::utils::matrix_times_vec;
 
 use super::{
     ecef::{ECEFVel, ECEF},
@@ -38,19 +38,23 @@ impl NED {
         };
     }
 
-    pub fn new_from_ecef_rot(ecef: &ECEF, rotation_matrix: &Matrix, reference_point: &ECEF) -> NED {
+    pub fn new_from_ecef_rot(
+        ecef: &ECEF,
+        rotation_matrix: &Vec<f64>,
+        reference_point: &ECEF,
+    ) -> NED {
         let x = ecef.x - reference_point.x;
         let y = ecef.y - reference_point.y;
         let z = ecef.z - reference_point.z;
-        let ecef_matrix = matrix(vec![x, y, z], 3, 1, Row);
+        let ecef_vec = vec![x, y, z];
 
-        let enu_matrix = rotation_matrix * &ecef_matrix;
+        let ned_vec = matrix_times_vec(rotation_matrix, &ecef_vec);
 
-        let n = enu_matrix[(0, 0)];
-        let e = enu_matrix[(1, 0)];
-        let d = enu_matrix[(2, 0)];
-
-        return NED { n, e, d };
+        return NED {
+            n: ned_vec[0],
+            e: ned_vec[1],
+            d: ned_vec[2],
+        };
     }
     pub fn distance_between(&self, other: &NED) -> f64 {
         return ((self.n - other.n).powf(2_f64)
@@ -94,19 +98,15 @@ impl NEDVel {
         };
     }
 
-    pub fn new_from_ecef_rot(ecef: &ECEFVel, rotation_matrix: &Matrix) -> NEDVel {
-        let ecef_matrix = matrix(vec![ecef.x_vel, ecef.y_vel, ecef.z_vel], 3, 1, Row);
+    pub fn new_from_ecef_rot(ecef: &ECEFVel, rotation_matrix: &Vec<f64>) -> NEDVel {
+        let ecef_vec = vec![ecef.x_vel, ecef.y_vel, ecef.z_vel];
 
-        let enu_matrix = rotation_matrix * &ecef_matrix;
-
-        let n = enu_matrix[(0, 0)];
-        let e = enu_matrix[(1, 0)];
-        let d = enu_matrix[(2, 0)];
+        let ned_vec = matrix_times_vec(rotation_matrix, &ecef_vec);
 
         return NEDVel {
-            n_vel: n,
-            e_vel: e,
-            d_vel: d,
+            n_vel: ned_vec[0],
+            e_vel: ned_vec[1],
+            d_vel: ned_vec[2],
         };
     }
 }

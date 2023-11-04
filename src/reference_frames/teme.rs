@@ -1,7 +1,9 @@
 use chrono::NaiveDateTime;
-use peroxide::prelude::{matrix, Shape::Row, SimplerLinearAlgebra};
 
-use crate::utils::{get_pef_tod_matrix, julian_to_gmst, old_maybe_broken_jday};
+use crate::utils::{
+    get_pef_tod_matrix, invert_matrix, julian_to_gmst, matrix_times_vec, old_maybe_broken_jday,
+    transpose,
+};
 
 use super::pef::{PEFVel, PEF};
 
@@ -19,16 +21,20 @@ impl TEME {
         // Given a reference to a PEF and a reference to a NaiveDateTime produces a TEME location
         // Be careful of the NaiveDateTime time zones - I am assuming this is using UNIX seconds
         // In general, you are best of making all NaiveDateTimes from UNIX timestamps
-        let pef_matrix = matrix(vec![pef.x, pef.y, pef.z], 3, 1, Row);
+        let pef_matrix = vec![pef.x, pef.y, pef.z];
         let (jday, jfrac) = old_maybe_broken_jday(utc_time);
         let julian = jday + jfrac;
         let gmst = julian_to_gmst(julian);
         let pef_tod_matrix = get_pef_tod_matrix(gmst);
-        let teme = pef_tod_matrix.transpose().inv() * pef_matrix;
+
+        let trans = transpose(&pef_tod_matrix);
+        let inv = invert_matrix(&trans);
+        let teme = matrix_times_vec(&inv, &pef_matrix);
+
         return TEME {
-            x: (teme[(0, 0)]),
-            y: (teme[(1, 0)]),
-            z: (teme[(2, 0)]),
+            x: (teme[0]),
+            y: (teme[1]),
+            z: (teme[2]),
         };
     }
 }
@@ -42,23 +48,20 @@ pub struct TEMEVel {
 }
 impl TEMEVel {
     pub fn new_from_pef_vel(pef: &PEF, pef_vel: &PEFVel, utc_time: &NaiveDateTime) -> TEMEVel {
-        let pef_vel_matrix = matrix(vec![pef_vel.x_vel, pef_vel.y_vel, pef_vel.z_vel], 3, 1, Row);
+        let pef_vel_matrix = vec![pef_vel.x_vel, pef_vel.y_vel, pef_vel.z_vel];
         let (jday, frac) = old_maybe_broken_jday(utc_time);
         let gmst = julian_to_gmst(jday + frac);
         let pef_tod_matrix = get_pef_tod_matrix(gmst);
         let omega_earth = 7.29211514670698e-05_f64 * (1.0_f64 - 0.002_f64 / 86400.0_f64);
-        let velocity_teme_temp = pef_tod_matrix.t().inv() * pef_vel_matrix;
-        let velocity_teme = velocity_teme_temp
-            + matrix(
-                vec![omega_earth * pef.y, omega_earth * pef.x, 0_f64],
-                3,
-                1,
-                Row,
-            );
+
+        let trans = transpose(&pef_tod_matrix);
+        let inv = invert_matrix(&trans);
+        let velocity_teme_temp = matrix_times_vec(&inv, &pef_vel_matrix);
+
         return TEMEVel {
-            x_vel: velocity_teme[(0, 0)],
-            y_vel: velocity_teme[(1, 0)],
-            z_vel: velocity_teme[(2, 0)],
+            x_vel: velocity_teme_temp[0] + omega_earth * pef.y,
+            y_vel: velocity_teme_temp[1] + omega_earth * pef.x,
+            z_vel: velocity_teme_temp[2],
         };
     }
 }

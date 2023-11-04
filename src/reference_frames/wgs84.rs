@@ -1,8 +1,7 @@
-use peroxide::prelude::{matrix, Matrix, Shape::Row};
-
 use crate::{
     constants::{DEG_TO_RAD, EARTH_ECCENTRICITY_SQUARED, EARTH_MAJOR},
     types::{Degrees, Metres, Radians},
+    utils::transpose_times_vec,
 };
 
 use super::{ecef::ECEF, ned::NED};
@@ -57,15 +56,19 @@ impl WGS84Coord {
         return WGS84Coord::new_from_radians(phi_lat, lambda_lon, h);
     }
 
-    pub fn new_from_ned(ned: &NED, rotation_matrix: &Matrix, reference_point: &ECEF) -> WGS84Coord {
-        let ned_matrix = matrix(vec![ned.n, ned.e, ned.d], 3, 1, Row);
+    pub fn new_from_ned(
+        ned: &NED,
+        rotation_matrix: &Vec<f64>,
+        reference_point: &ECEF,
+    ) -> WGS84Coord {
+        let ned_matrix = vec![ned.n, ned.e, ned.d];
 
-        let temp_matrix = rotation_matrix.t() * ned_matrix;
+        let temp_matrix = transpose_times_vec(rotation_matrix, &ned_matrix);
 
         let ecef = ECEF {
-            x: temp_matrix[(0, 0)] + reference_point.x,
-            y: temp_matrix[(1, 0)] + reference_point.y,
-            z: temp_matrix[(2, 0)] + reference_point.z,
+            x: temp_matrix[0] + reference_point.x,
+            y: temp_matrix[1] + reference_point.y,
+            z: temp_matrix[2] + reference_point.z,
         };
 
         return WGS84Coord::new_from_ecef_struct(&ecef);

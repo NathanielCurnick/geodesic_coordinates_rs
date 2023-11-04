@@ -1,6 +1,4 @@
 use approx::assert_relative_eq;
-use peroxide::prelude::matrix;
-use peroxide::prelude::Shape::Row;
 
 use crate::reference_frames::ecef::{
     construct_ecef_to_ned_jacobian, generate_ecef_to_ned_matrix, ECEFVel, ECEF,
@@ -10,32 +8,24 @@ use crate::reference_frames::wgs84::WGS84Coord;
 
 #[test]
 fn test_ecef_to_ned_jacobian() {
-    let basic_matrix = matrix(vec![1.0; 9], 3, 3, Row);
+    let basic_matrix = vec![1.0; 9];
 
     let jacobian = construct_ecef_to_ned_jacobian(&basic_matrix);
-
-    println!("{}", jacobian);
 
     let correct = vec![
         1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
         0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
     ];
 
-    let correct_matrix = matrix(correct.clone(), 6, 6, Row);
-
-    println!("{}", correct_matrix);
-
-    for (a, b) in correct.iter().zip(jacobian.data.iter()) {
+    for (a, b) in correct.iter().zip(jacobian.iter()) {
         assert_eq!(a, b);
     }
 
     // =============================================
 
-    let basic_matrix = matrix(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], 3, 3, Row);
+    let basic_matrix = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
 
     let jacobian = construct_ecef_to_ned_jacobian(&basic_matrix);
-
-    println!("{}", jacobian);
 
     let correct = vec![
         1.0, 2.0, 3.0, 0.0, 0.0, 0.0, //
@@ -46,7 +36,7 @@ fn test_ecef_to_ned_jacobian() {
         0.0, 0.0, 0.0, 7.0, 8.0, 9.0, //
     ];
 
-    for (a, b) in correct.iter().zip(jacobian.data.iter()) {
+    for (a, b) in correct.iter().zip(jacobian.iter()) {
         assert_eq!(a, b);
     }
 }

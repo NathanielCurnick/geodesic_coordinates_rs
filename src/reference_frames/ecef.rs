@@ -1,9 +1,8 @@
 use chrono::NaiveDateTime;
-use peroxide::prelude::{matrix, Matrix, Shape::Row};
 
 use crate::{
     constants::{EARTH_ECCENTRICITY_SQUARED, EARTH_MAJOR},
-    utils::{get_polar_motion_matrix, old_maybe_broken_jday},
+    utils::{get_polar_motion_matrix, old_maybe_broken_jday, transpose_times_vec},
 };
 
 use super::{
@@ -55,13 +54,20 @@ impl ECEF {
         let (jday, jfrac) = old_maybe_broken_jday(utc_time);
         let julian = jday + jfrac;
         let polar_motion_matrix = get_polar_motion_matrix(julian);
-        let pef_matrix = matrix(vec![pef.x, pef.y, pef.z], 3, 1, Row);
-        let efec_matrix = polar_motion_matrix.t() * pef_matrix;
-        return ECEF {
-            x: efec_matrix[(0, 0)],
-            y: efec_matrix[(1, 0)],
-            z: efec_matrix[(2, 0)],
-        };
+
+        // polar_motion_matrix^T * pef
+
+        let x = polar_motion_matrix[0] * pef.x
+            + polar_motion_matrix[3] * pef.y
+            + polar_motion_matrix[6] * pef.z;
+        let y = polar_motion_matrix[1] * pef.x
+            + polar_motion_matrix[4] * pef.y
+            + polar_motion_matrix[7] * pef.z;
+        let z = polar_motion_matrix[2] * pef.x
+            + polar_motion_matrix[5] * pef.y
+            + polar_motion_matrix[8] * pef.z;
+
+        return ECEF { x, y, z };
     }
 
     // ! Broken
@@ -98,13 +104,16 @@ impl ECEF {
     //     return ecef;
     // }
 
-    pub fn new_from_ned_rot(ned: &NED, rotation_matrix: &Matrix, reference_point: &ECEF) -> ECEF {
-        let ned_matrix = matrix(vec![ned.n, ned.e, ned.d], 3, 1, Row);
-        let ecef_matrix = rotation_matrix.t() * ned_matrix;
+    pub fn new_from_ned_rot(ned: &NED, rotation_matrix: &Vec<f64>, reference_point: &ECEF) -> ECEF {
+        // rotation_matrix^T * ned
 
-        let x = ecef_matrix[(0, 0)] + reference_point.x;
-        let y = ecef_matrix[(1, 0)] + reference_point.y;
-        let z = ecef_matrix[(2, 0)] + reference_point.z;
+        let ned_v = vec![ned.n, ned.e, ned.d];
+
+        let tmp = transpose_times_vec(&rotation_matrix, &ned_v);
+
+        let x = tmp[0] + reference_point.x;
+        let y = tmp[1] + reference_point.y;
+        let z = tmp[2] + reference_point.z;
 
         return ECEF { x, y, z };
     }
@@ -127,17 +136,14 @@ impl ECEFVel {
         let (jday, frac) = old_maybe_broken_jday(utc_time);
         let polar_motion_matrix = get_polar_motion_matrix(jday + frac);
         let velocity_pef = PEFVel::new_from_teme_vel(teme, teme_vel, utc_time);
-        let velocity_pef_matrix = matrix(
-            vec![velocity_pef.x_vel, velocity_pef.y_vel, velocity_pef.z_vel],
-            3,
-            1,
-            Row,
-        );
-        let velocity_ecef = polar_motion_matrix.t() * velocity_pef_matrix;
+        let velocity_pef = vec![velocity_pef.x_vel, velocity_pef.y_vel, velocity_pef.z_vel];
+
+        let v_ecef = transpose_times_vec(&polar_motion_matrix, &velocity_pef);
+
         return ECEFVel {
-            x_vel: velocity_ecef[(0, 0)],
-            y_vel: velocity_ecef[(1, 0)],
-            z_vel: velocity_ecef[(2, 0)],
+            x_vel: v_ecef[0],
+            y_vel: v_ecef[1],
+            z_vel: v_ecef[2],
         };
     }
 
@@ -219,13 +225,17 @@ impl ECEFVel {
         };
     }
 
-    pub fn new_from_ned_rot(ned: &NEDVel, rotation_matrix: &Matrix) -> ECEFVel {
-        let ned_matrix = matrix(vec![ned.n_vel, ned.e_vel, ned.d_vel], 3, 1, Row);
-        let ecef_matrix = rotation_matrix.t() * ned_matrix;
+    pub fn new_from_ned_rot(ned: &NEDVel, rotation_matrix: &Vec<f64>) -> ECEFVel {
+        // rotation_matrix^T * ned_vel
+
+        let ned_v = vec![ned.n_vel, ned.e_vel, ned.d_vel];
+
+        let tmp = transpose_times_vec(rotation_matrix, &ned_v);
+
         return ECEFVel {
-            x_vel: ecef_matrix[(0, 0)],
-            y_vel: ecef_matrix[(1, 0)],
-            z_vel: ecef_matrix[(2, 0)],
+            x_vel: tmp[0],
+            y_vel: tmp[1],
+            z_vel: tmp[2],
         };
     }
 
@@ -234,53 +244,45 @@ impl ECEFVel {
     }
 }
 
-pub fn generate_ecef_to_ned_matrix(initial_point: &WGS84Coord) -> Matrix {
+pub fn generate_ecef_to_ned_matrix(initial_point: &WGS84Coord) -> Vec<f64> {
     let sin_lon = initial_point.get_lon_radians().sin();
     let cos_lon = initial_point.get_lon_radians().cos();
 
     let sin_lat = initial_point.get_lat_radians().sin();
     let cos_lat = initial_point.get_lat_radians().cos();
 
-    let rotation = matrix(
-        vec![
-            -sin_lat * cos_lon,
-            -sin_lat * sin_lon,
-            cos_lat,
-            -sin_lon,
-            cos_lon,
-            0_f64,
-            -cos_lat * cos_lon,
-            -cos_lat * sin_lon,
-            -sin_lat,
-        ],
-        3,
-        3,
-        Row,
-    );
+    let rotation = vec![
+        -sin_lat * cos_lon,
+        -sin_lat * sin_lon,
+        cos_lat,
+        -sin_lon,
+        cos_lon,
+        0_f64,
+        -cos_lat * cos_lon,
+        -cos_lat * sin_lon,
+        -sin_lat,
+    ];
+
     return rotation;
 }
 
-pub fn construct_ecef_to_ned_jacobian(ecef_to_ned: &Matrix) -> Matrix {
-    assert_eq!(ecef_to_ned.row, 3);
-    assert_eq!(ecef_to_ned.col, 3);
-
-    // let rot = ecef_to_ned.data.clone();
+pub fn construct_ecef_to_ned_jacobian(ecef_to_ned: &Vec<f64>) -> Vec<f64> {
     let jacobian_vec = vec![
-        ecef_to_ned.row(0),
+        vec![ecef_to_ned[0], ecef_to_ned[1], ecef_to_ned[2]],
         vec![0.0; 3],
-        ecef_to_ned.row(1),
+        vec![ecef_to_ned[3], ecef_to_ned[4], ecef_to_ned[5]],
         vec![0.0; 3],
-        ecef_to_ned.row(2),
+        vec![ecef_to_ned[6], ecef_to_ned[7], ecef_to_ned[8]],
         vec![0.0; 3],
         vec![0.0; 3],
-        ecef_to_ned.row(0),
+        vec![ecef_to_ned[0], ecef_to_ned[1], ecef_to_ned[2]],
         vec![0.0; 3],
-        ecef_to_ned.row(1),
+        vec![ecef_to_ned[3], ecef_to_ned[4], ecef_to_ned[5]],
         vec![0.0; 3],
-        ecef_to_ned.row(2),
+        vec![ecef_to_ned[6], ecef_to_ned[7], ecef_to_ned[8]],
     ];
 
-    let jacobian_matrix = matrix(jacobian_vec.concat(), 6, 6, Row);
+    let jacobian_matrix = jacobian_vec.concat();
 
     return jacobian_matrix;
 }
