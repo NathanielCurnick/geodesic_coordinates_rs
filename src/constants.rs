@@ -1,8 +1,10 @@
 use std::f64::consts::PI;
 
 use crate::types::{Kilometres, Metres, Minutes};
+use wasm_bindgen::prelude::*;
 
 pub const DEG_TO_RAD: f64 = PI / 180.0;
+
 pub const EARTH_FLATTENING: f64 = 1.0 / 298.257223563;
 pub const EARTH_FLATTENING_SQUARED: f64 = EARTH_FLATTENING * EARTH_FLATTENING;
 pub const EARTH_MAJOR: Metres = 6378137.0;

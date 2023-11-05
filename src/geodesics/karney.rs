@@ -6,7 +6,10 @@ use crate::{
     types::{DistBearing, LocBearing, Metres, Radians},
 };
 
-pub fn location_and_bearing(
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn karney_location_and_bearing(
     lat1: Radians,
     lon1: Radians,
     bearing: Radians,
@@ -134,7 +137,8 @@ pub fn location_and_bearing(
     };
 }
 
-pub fn distance_and_bearing(
+#[wasm_bindgen]
+pub fn karney_distance_and_bearing(
     lat1: Radians,
     lon1: Radians,
     lat2: Radians,

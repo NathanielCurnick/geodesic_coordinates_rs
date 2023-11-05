@@ -5,7 +5,10 @@ use crate::{
     types::{DistBearing, LocBearing, Metres, Radians},
 };
 
-pub fn distance_and_bearing(
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn haversine_distance_and_bearing(
     lat1: Radians,
     lon1: Radians,
     lat2: Radians,
@@ -28,7 +31,8 @@ pub fn distance_and_bearing(
     return DistBearing { distance, bearing };
 }
 
-pub fn location_and_bearing(
+#[wasm_bindgen]
+pub fn haversine_location_and_bearing(
     lat1: Radians,
     lon1: Radians,
     bearing: Radians,
