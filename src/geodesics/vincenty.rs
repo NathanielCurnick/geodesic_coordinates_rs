@@ -5,8 +5,18 @@ use crate::{
 
 use wasm_bindgen::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn vincenty_location_and_bearing(
+    lat1: Radians,
+    lon1: Radians,
+    bearing: Radians,
+    distance: Metres,
+) -> LocBearing {
+    return location_and_bearing(lat1, lon1, bearing, distance);
+}
+
+pub fn location_and_bearing(
     lat1: Radians,
     lon1: Radians,
     bearing: Radians,
@@ -94,8 +104,18 @@ pub fn vincenty_location_and_bearing(
     };
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn vincenty_distance_and_bearing(
+    lat1: Radians,
+    lon1: Radians,
+    lat2: Radians,
+    lon2: Radians,
+) -> DistBearing {
+    return distance_and_bearing(lat1, lon1, lat2, lon2);
+}
+
+pub fn distance_and_bearing(
     lat1: Radians,
     lon1: Radians,
     lat2: Radians,
